@@ -77,39 +77,39 @@ class DetectionLoader():#检测装载机
         self.device = opt.device
         self.detector = detector
 
-        self._input_size = cfg.DATA_PRESET.IMAGE_SIZE
-        self._output_size = cfg.DATA_PRESET.HEATMAP_SIZE
+        self._input_size = cfg.DATA_PRESET.IMAGE_SIZE#将输入大小设置为预设图片大小
+        self._output_size = cfg.DATA_PRESET.HEATMAP_SIZE#将输出大小设置为热图大小
 
         self._sigma = cfg.DATA_PRESET.SIGMA
 
-        pose_dataset = builder.retrieve_dataset(self.cfg.DATASET.TRAIN)
+        pose_dataset = builder.retrieve_dataset(self.cfg.DATASET.TRAIN)#检索数据集
         if cfg.DATA_PRESET.TYPE == 'simple':
             self.transformation = SimpleTransform(
                 pose_dataset, scale_factor=0,
                 input_size=self._input_size,
                 output_size=self._output_size,
                 rot=0, sigma=self._sigma,
-                train=False, add_dpg=False, gpu_device=self.device)
+                train=False, add_dpg=False, gpu_device=self.device)#数据转换
 
         self.image = (None, None, None, None)
         self.det = (None, None, None, None, None, None, None)
         self.pose = (None, None, None, None, None, None, None)
 
     def process(self, im_name, image):
-        # start to pre process images for object detection
+       #开始对目标检测的图像进行预处理
         self.image_preprocess(im_name, image)
-        # start to detect human in images
+       #开始在图像中检测人类
         self.image_detection()
-        # start to post process cropped human image for pose estimation
+        #开始对裁剪的人体图像进行后处理以进行姿势估计
         self.image_postprocess()
         return self
 
-    def image_preprocess(self, im_name, image):
-        # expected image shape like (1,3,h,w) or (3,h,w)
+    def image_preprocess(self, im_name, image):#图像预处理
+        #预期的图像形状，如（1,3，h，w）或（3，h，w）
         img = self.detector.image_preprocess(image)
         if isinstance(img, np.ndarray):
             img = torch.from_numpy(img)
-        # add one dimension at the front for batch if image shape (3,h,w)
+        #如果图像形状（3，h，w），则在前面添加一个尺寸用于批处理
         if img.dim() == 3:
             img = img.unsqueeze(0)
         orig_img = image # scipy.misc.imread(im_name_k, mode='RGB') is depreciated
@@ -122,21 +122,21 @@ class DetectionLoader():#检测装载机
 
         self.image = (img, orig_img, im_name, im_dim)
 
-    def image_detection(self):
+    def image_detection(self):#图像质量检测
         imgs, orig_imgs, im_names, im_dim_list = self.image
         if imgs is None:
             self.det = (None, None, None, None, None, None, None)
             return
 
-        with torch.no_grad():
+        with torch.no_grad():#上下文管理器
             dets = self.detector.images_detection(imgs, im_dim_list)
             if isinstance(dets, int) or dets.shape[0] == 0:
                 self.det = (orig_imgs, im_names, None, None, None, None, None)
                 return
-            if isinstance(dets, np.ndarray):
+            if isinstance(dets, np.ndarray):#判断np.ndarray是否为dets型
                 dets = torch.from_numpy(dets)
             dets = dets.cpu()
-            boxes = dets[:, 1:5]
+            boxes = dets[:, 1:5]#boxes截取第一到第五个片段
             scores = dets[:, 5:6]
             ids = torch.zeros(scores.shape)
 
@@ -149,7 +149,7 @@ class DetectionLoader():#检测装载机
 
         self.det = (orig_imgs, im_names, boxes, scores[dets[:, 0] == 0], ids[dets[:, 0] == 0], inps, cropped_boxes)
 
-    def image_postprocess(self):
+    def image_postprocess(self):#对图像进行后期处理
         with torch.no_grad():
             (orig_img, im_name, boxes, scores, ids, inps, cropped_boxes) = self.det
             if orig_img is None:
