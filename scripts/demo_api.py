@@ -5,24 +5,24 @@
 
 """Script for single-image demo."""
 import argparse#argparse 是 Python 内置的一个用于命令项选项与参数解析的模块，通过在程序中定义好我们需要的参数，argparse 将会从 sys.argv 中解析出这些参数，并自动生成帮助和使用信息
-import torch
-import os
-import platform
+import torch#引用torch模块
+import os#引入对文件操作的模块
+import platform#引入platform模块对系统的信息进行操作 
 import sys
-import math
-import time
+import math#引入math函数，提供所需数学方法
+import time#引入对时间处理的模块
 
-import cv2
-import numpy as np
+import cv2#调用OpenCV
+import numpy as np#引入数据计算库
 
-from alphapose.utils.transforms import get_func_heatmap_to_coord
+from alphapose.utils.transforms import get_func_heatmap_to_coord#获取功能热图到坐标
 from alphapose.utils.pPose_nms import pose_nms
-from alphapose.utils.presets import SimpleTransform
-from alphapose.utils.transforms import flip, flip_heatmap
+from alphapose.utils.presets import SimpleTransform#引入简单变换的模块
+from alphapose.utils.transforms import flip, flip_heatmap#引入反转热图的模块
 from alphapose.models import builder
-from alphapose.utils.config import update_config
-from detector.apis import get_detector
-from alphapose.utils.vis import getTime
+from alphapose.utils.config import update_config#引入更新配置的模块
+from detector.apis import get_detector#获取探测器
+from alphapose.utils.vis import getTime#引入获取时间的模块
 
 """----------------------------- Demo options -----------------------------"""
 parser = argparse.ArgumentParser(description='AlphaPose Single-Image Demo')#创建一个解析对象 方法参数须知：一般我们只选择用description
@@ -64,13 +64,13 @@ parser.add_argument('--pose_track', dest='pose_track',
                     help='track humans in video with reid', action='store_true', default=False)
 
 args = parser.parse_args()#进行解析
-cfg = update_config(args.cfg)
+cfg = update_config(args.cfg)#更新配置
 
 args.gpus = [int(args.gpus[0])] if torch.cuda.device_count() >= 1 else [-1]
 args.device = torch.device("cuda:" + str(args.gpus[0]) if args.gpus[0] >= 0 else "cpu")
 args.tracking = args.pose_track or args.pose_flow or args.detector=='tracker'
 
-class DetectionLoader():
+class DetectionLoader():#检测装载机
     def __init__(self, detector, cfg, opt):
         self.cfg = cfg
         self.opt = opt
