@@ -4,7 +4,7 @@
 # -----------------------------------------------------
 
 """Script for single-image demo."""
-import argparse
+import argparse#argparse 是 Python 内置的一个用于命令项选项与参数解析的模块，通过在程序中定义好我们需要的参数，argparse 将会从 sys.argv 中解析出这些参数，并自动生成帮助和使用信息
 import torch
 import os
 import platform
@@ -25,44 +25,45 @@ from detector.apis import get_detector
 from alphapose.utils.vis import getTime
 
 """----------------------------- Demo options -----------------------------"""
-parser = argparse.ArgumentParser(description='AlphaPose Single-Image Demo')
+parser = argparse.ArgumentParser(description='AlphaPose Single-Image Demo')#创建一个解析对象 方法参数须知：一般我们只选择用description
 parser.add_argument('--cfg', type=str, required=True,
-                    help='experiment configure file name')
+                    help='experiment configure file name')#向该对象中添加你要关注的命令行参数和选项
+
 parser.add_argument('--checkpoint', type=str, required=True,
-                    help='checkpoint file name')
+                    help='checkpoint file name')#required: 表示这个参数是否一定需要设置
 parser.add_argument('--detector', dest='detector',
-                    help='detector name', default="yolo")
+                    help='detector name', default="yolo")#type：参数类型
 parser.add_argument('--image', dest='inputimg',
-                    help='image-name', default="")
+                    help='image-name', default="")#default：没有设置值情况下的默认参数
 parser.add_argument('--save_img', default=False, action='store_true',
-                    help='save result as image')
+                    help='save result as image')#把结果按照图片的形式存储
 parser.add_argument('--vis', default=False, action='store_true',
-                    help='visualize image')
+                    help='visualize image')#将图片可视化
 parser.add_argument('--showbox', default=False, action='store_true',
-                    help='visualize human bbox')
+                    help='visualize human bbox')#将人物方框可视化
 parser.add_argument('--profile', default=False, action='store_true',
-                    help='add speed profiling at screen output')
+                    help='add speed profiling at screen output')#在屏幕输出处添加速度分析
 parser.add_argument('--format', type=str,
-                    help='save in the format of cmu or coco or openpose, option: coco/cmu/open')
+                    help='save in the format of cmu or coco or openpose, option: coco/cmu/open')#以cmu或coco或openpose格式保存
 parser.add_argument('--min_box_area', type=int, default=0,
-                    help='min box area to filter out')
+                    help='min box area to filter out')#要过滤掉的最小盒子面积
 parser.add_argument('--eval', dest='eval', default=False, action='store_true',
-                    help='save the result json as coco format, using image index(int) instead of image name(str)')
+                    help='save the result json as coco format, using image index(int) instead of image name(str)')#将结果json保存为coco格式，使用图像索引（int）而不是图像名称（str）
 parser.add_argument('--gpus', type=str, dest='gpus', default="0",
-                    help='choose which cuda device to use by index and input comma to use multi gpus, e.g. 0,1,2,3. (input -1 for cpu only)')
+                    help='choose which cuda device to use by index and input comma to use multi gpus, e.g. 0,1,2,3. (input -1 for cpu only)')#按索引选择要使用的cuda设备，并输入逗号以使用多GPU
 parser.add_argument('--flip', default=False, action='store_true',
-                    help='enable flip testing')
+                    help='enable flip testing')#启用翻转测试
 parser.add_argument('--debug', default=False, action='store_true',
-                    help='print detail information')
+                    help='print detail information')#打印出细节信息
 parser.add_argument('--vis_fast', dest='vis_fast',
-                    help='use fast rendering', action='store_true', default=False)
+                    help='use fast rendering', action='store_true', default=False)#使用快速渲染
 """----------------------------- Tracking options -----------------------------"""
 parser.add_argument('--pose_flow', dest='pose_flow',
-                    help='track humans in video with PoseFlow', action='store_true', default=False)
+                    help='track humans in video with PoseFlow', action='store_true', default=False)#用PoseFlow在视频中跟踪人类
 parser.add_argument('--pose_track', dest='pose_track',
                     help='track humans in video with reid', action='store_true', default=False)
 
-args = parser.parse_args()
+args = parser.parse_args()#进行解析
 cfg = update_config(args.cfg)
 
 args.gpus = [int(args.gpus[0])] if torch.cuda.device_count() >= 1 else [-1]
