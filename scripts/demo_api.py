@@ -91,9 +91,9 @@ class DetectionLoader():#检测装载机
                 rot=0, sigma=self._sigma,
                 train=False, add_dpg=False, gpu_device=self.device)#数据转换
 
-        self.image = (None, None, None, None)
+        self.image = (None, None, None, None)#将image的各项参数设置为none
         self.det = (None, None, None, None, None, None, None)
-        self.pose = (None, None, None, None, None, None, None)
+        self.pose = (None, None, None, None, None, None, None)#将姿态的各项参数设置为none
 
     def process(self, im_name, image):
        #开始对目标检测的图像进行预处理
@@ -110,14 +110,14 @@ class DetectionLoader():#检测装载机
         if isinstance(img, np.ndarray):
             img = torch.from_numpy(img)
         #如果图像形状（3，h，w），则在前面添加一个尺寸用于批处理
-        if img.dim() == 3:
-            img = img.unsqueeze(0)
+        if img.dim() == 3:#如果维度为3
+            img = img.unsqueeze(0)#那么在第一个维度上加一
         orig_img = image # scipy.misc.imread(im_name_k, mode='RGB') is depreciated
         im_dim = orig_img.shape[1], orig_img.shape[0]
 
         im_name = os.path.basename(im_name)
 
-        with torch.no_grad():
+        with torch.no_grad():#计算图的构建
             im_dim = torch.FloatTensor(im_dim).repeat(1, 2)
 
         self.image = (img, orig_img, im_name, im_dim)
@@ -125,24 +125,23 @@ class DetectionLoader():#检测装载机
     def image_detection(self):#图像质量检测
         imgs, orig_imgs, im_names, im_dim_list = self.image
         if imgs is None:
-            self.det = (None, None, None, None, None, None, None)
+            self.det = (None, None, None, None, None, None, None)#如果imgs为none则将限定的各项参数都设置为none
             return
-
-        with torch.no_grad():#上下文管理器
+        with torch.no_grad():#计算图的构建
             dets = self.detector.images_detection(imgs, im_dim_list)
             if isinstance(dets, int) or dets.shape[0] == 0:
-                self.det = (orig_imgs, im_names, None, None, None, None, None)
+                self.det = (orig_imgs, im_names, None, None, None, None, None)#根据dets的类型以及dets.shape[]来对限定的各项参数进行赋值
                 return
-            if isinstance(dets, np.ndarray):#判断np.ndarray是否为dets型
+            if isinstance(dets, np.ndarray):#判断dets是否为np.ndarray类型
                 dets = torch.from_numpy(dets)
             dets = dets.cpu()
             boxes = dets[:, 1:5]#boxes截取第一到第五个片段
-            scores = dets[:, 5:6]
+            scores = dets[:, 5:6]#scores截取第五到第六个片段
             ids = torch.zeros(scores.shape)
 
         boxes = boxes[dets[:, 0] == 0]
         if isinstance(boxes, int) or boxes.shape[0] == 0:
-            self.det = (orig_imgs, im_names, None, None, None, None, None)
+            self.det = (orig_imgs, im_names, None, None, None, None, None)#根据boxes的类型以及boxes的shape[]来对各个限定进行赋值
             return
         inps = torch.zeros(boxes.size(0), 3, *self._input_size)
         cropped_boxes = torch.zeros(boxes.size(0), 4)
@@ -153,10 +152,10 @@ class DetectionLoader():#检测装载机
         with torch.no_grad():
             (orig_img, im_name, boxes, scores, ids, inps, cropped_boxes) = self.det
             if orig_img is None:
-                self.pose = (None, None, None, None, None, None, None)
+                self.pose = (None, None, None, None, None, None, None)#如果orig_img为空则将姿态的限定的各项参数设置为none
                 return
             if boxes is None or boxes.nelement() == 0:
-                self.pose = (None, orig_img, im_name, boxes, scores, ids, None)
+                self.pose = (None, orig_img, im_name, boxes, scores, ids, None)#根据boxes的值和boxes.nelement()的值来进行判断，并对姿态的各个限定进行赋值
                 return
 
             for i, box in enumerate(boxes):
@@ -165,12 +164,12 @@ class DetectionLoader():#检测装载机
 
             self.pose = (inps, orig_img, im_name, boxes, scores, ids, cropped_boxes)
 
-    def read(self):
-        return self.pose
+    def read(self):#定义一个读函数
+        return self.pose#将姿态的数据返回
 
 
-class DataWriter():
-    def __init__(self, cfg, opt):
+class DataWriter():#定义一个写数据的类
+    def __init__(self, cfg, opt):#初始化各项参数
         self.cfg = cfg
         self.opt = opt
 
@@ -179,24 +178,24 @@ class DataWriter():
         self.item = (None, None, None, None, None, None, None)
 
     def start(self):
-        # start to read pose estimation results
+        # 开始读取姿势估计结果
         return self.update()
 
     def update(self):
         norm_type = self.cfg.LOSS.get('NORM_TYPE', None)
         hm_size = self.cfg.DATA_PRESET.HEATMAP_SIZE
 
-        # get item
+        # 获取项目
         (boxes, scores, ids, hm_data, cropped_boxes, orig_img, im_name) = self.item
         if orig_img is None:
             return None
-        # image channel RGB->BGR
+        # 图像通道RGB->BGR
         orig_img = np.array(orig_img, dtype=np.uint8)[:, :, ::-1]
         self.orig_img = orig_img
         if boxes is None or len(boxes) == 0:
             return None
         else:
-            # location prediction (n, kp, 2) | score prediction (n, kp, 1)
+            # 位置预测（n，kp，2）|score预测（n，kp，1）
             assert hm_data.dim() == 4
             if hm_data.size()[1] == 136:
                 self.eval_joints = [*range(0,136)]
@@ -205,35 +204,35 @@ class DataWriter():
             pose_coords = []
             pose_scores = []
 
-            for i in range(hm_data.shape[0]):
+            for i in range(hm_data.shape[0]):#对姿态的各项数据进行循环处理
                 bbox = cropped_boxes[i].tolist()
                 pose_coord, pose_score = self.heatmap_to_coord(hm_data[i][self.eval_joints], bbox, hm_shape=hm_size, norm_type=norm_type)
-                pose_coords.append(torch.from_numpy(pose_coord).unsqueeze(0))
+                pose_coords.append(torch.from_numpy(pose_coord).unsqueeze(0))#向pose_coords添加维数
                 pose_scores.append(torch.from_numpy(pose_score).unsqueeze(0))
-            preds_img = torch.cat(pose_coords)
+            preds_img = torch.cat(pose_coords)#在给定维度上对输入的张量序列进行连接操作
             preds_scores = torch.cat(pose_scores)
 
             boxes, scores, ids, preds_img, preds_scores, pick_ids = \
                 pose_nms(boxes, scores, ids, preds_img, preds_scores, self.opt.min_box_area)
 
-            _result = []
+            _result = []#先将_result设置为空
             for k in range(len(scores)):
-                _result.append(
+                _result.append(#再向_result序列中添加数据
                     {
                         'keypoints':preds_img[k],
                         'kp_score':preds_scores[k],
-                        'proposal_score': torch.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),
+                        'proposal_score': torch.mean(preds_scores[k]) + scores[k] + 1.25 * max(preds_scores[k]),#计算出proposal_score
                         'idx':ids[k],
                         'bbox':[boxes[k][0], boxes[k][1], boxes[k][2]-boxes[k][0],boxes[k][3]-boxes[k][1]] 
                     }
                 )
 
-            result = {
+            result = {#将_result的值赋result
                 'imgname': im_name,
                 'result': _result
             }
 
-            if hm_data.size()[1] == 49:
+            if hm_data.size()[1] == 49:#通过对hm_data.size()进行判断来引用包
                 from alphapose.utils.vis import vis_frame_dense as vis_frame
             elif self.opt.vis_fast:
                 from alphapose.utils.vis import vis_frame_fast as vis_frame
@@ -243,15 +242,15 @@ class DataWriter():
 
         return result
 
-    def save(self, boxes, scores, ids, hm_data, cropped_boxes, orig_img, im_name):
-        self.item = (boxes, scores, ids, hm_data, cropped_boxes, orig_img, im_name)
+    def save(self, boxes, scores, ids, hm_data, cropped_boxes, orig_img, im_name):#定义存储函数
+        self.item = (boxes, scores, ids, hm_data, cropped_boxes, orig_img, im_name)#将各个参数的值赋给item
 
-class SingleImageAlphaPose():
+class SingleImageAlphaPose():#定义单幅图像的AlphaPose
     def __init__(self, args, cfg):
         self.args = args
         self.cfg = cfg
 
-        # Load pose model
+        # 加载姿势模型
         self.pose_model = builder.build_sppe(cfg.MODEL, preset_cfg=cfg.DATA_PRESET)
 
         print(f'Loading pose model from {args.checkpoint}...')
@@ -264,7 +263,7 @@ class SingleImageAlphaPose():
         self.det_loader = DetectionLoader(get_detector(self.args), self.cfg, self.args)
 
     def process(self, im_name, image):
-        # Init data writer
+        #初始化数据写入程序
         self.writer = DataWriter(self.cfg, self.args)
 
         runtime_profile = {
@@ -295,12 +294,13 @@ class SingleImageAlphaPose():
                     if self.args.profile:
                         ckpt_time, det_time = getTime(start_time)
                         runtime_profile['dt'].append(det_time)
-                    # Pose Estimation
+                    #姿态估计
                     inps = inps.to(self.args.device)
                     if self.args.flip:
                         inps = torch.cat((inps, flip(inps)))
                     hm = self.pose_model(inps)
                     if self.args.flip:
+                      #对hm_flip和hm进行计算
                         hm_flip = flip_heatmap(hm[int(len(hm) / 2):], self.pose_dataset.joint_pairs, shift=True)
                         hm = (hm[0:int(len(hm) / 2)] + hm_flip) / 2
                     if self.args.profile:
@@ -319,7 +319,7 @@ class SingleImageAlphaPose():
                         dt=np.mean(runtime_profile['dt']), pt=np.mean(runtime_profile['pt']), pn=np.mean(runtime_profile['pn']))
                 )
             print('===========================> Finish Model Running.')
-        except Exception as e:
+        except Exception as e:#检查异常进行错误处理
             print(repr(e))
             print('An error as above occurs when processing the images, please check it')
             pass
@@ -329,7 +329,7 @@ class SingleImageAlphaPose():
         return pose
 
     def getImg(self):
-        return self.writer.orig_img
+        return self.writer.orig_img#将img的数据返回
 
     def vis(self, image, pose):
         if pose is not None:
@@ -347,18 +347,18 @@ def example():
         os.mkdir(outputpath + '/vis')
 
     demo = SingleImageAlphaPose(args, cfg)
-    im_name = args.inputimg    # the path to the target image
+    im_name = args.inputimg    #目标图像的路径
     image = cv2.cvtColor(cv2.imread(im_name), cv2.COLOR_BGR2RGB)
     pose = demo.process(im_name, image)
-    img = demo.getImg()     # or you can just use: img = cv2.imread(image)
-    img = demo.vis(img, pose)   # visulize the pose result
+    img = demo.getImg()     # 或者你可以仅仅使用: img = cv2.imread(image)
+    img = demo.vis(img, pose)    #可视化姿势结果
     cv2.imwrite(os.path.join(outputpath, 'vis', os.path.basename(im_name)), img)
     
-    # if you want to vis the img:
+    # 如果你想可视化img:
     # cv2.imshow("AlphaPose Demo", img)
     # cv2.waitKey(30)
 
-    # write the result to json:
+    # 把结果写入json:
     result = [pose]
     demo.writeJson(result, outputpath, form=args.format, for_eval=args.eval)
 
